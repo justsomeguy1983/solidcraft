@@ -1661,6 +1661,7 @@ mod tests {
         KitCall { name: "button", args: &[1], id: false, trim: &[] },
         KitCall { name: "primary_button", args: &[1], id: false, trim: &[] },
         KitCall { name: "wide_primary_button", args: &[1], id: false, trim: &[] },
+        KitCall { name: "wide_primary_and_secondary", args: &[1, 2], id: false, trim: &[] },
         KitCall { name: "action_menu", args: &[1], id: false, trim: &[] },
         KitCall { name: "compact_button", args: &[2], id: false, trim: &[] },
         KitCall { name: "icon_label_button", args: &[1], id: false, trim: &[] },

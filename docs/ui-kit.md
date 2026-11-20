@@ -433,6 +433,7 @@ table. Panel/Window/Confirm compositions also have dedicated geometry and intera
 | `mirrored_icon_button_at` | Directional counterpart of an existing icon master, sharing icon-button presentation and accessible label | Shared icon-button tokens |
 | `icon_button_at` | Icon action inside a supplied rectangle | `form_icon_inset`, `text/dim`, icon palette |
 | `button_pair`, `PairButton` | Equal secondary actions, optional icons and selected state | `form_button_height`, control/selection/icon tokens |
+| `wide_primary_and_secondary` | An accent action and a secondary action side by side, each as wide as one of `button_pair`'s buttons (Finish Sketch and Cancel Sketch) | `form_primary`, `on_accent`, `form_button_height`, control tokens |
 | `footer`, `Footer`, `Action`, `HeaderActions` | OK/Cancel with optional Apply, compute status or selected action; `HeaderActions` puts the same buttons in a header row | `form_footer/button_height`, `dialog_footer/rule`, `control_*`, `accent`, spacing |
 | `keyboard` | Esc cancels, unowned Enter submits when valid | none |
 | `action_menu`, `command_menu_button` | Nested dense action menu or ribbon overflow action retaining its icon, shortcut and enabled state | form control/font tokens, `space_16`, icon palette |

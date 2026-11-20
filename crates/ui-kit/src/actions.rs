@@ -756,6 +756,36 @@ pub fn wide_primary_button(ui: &mut Ui, label: &str) -> Response {
     response
 }
 
+/// An accent action and a secondary action side by side, across their container inside
+/// `button_pair`'s inset, each as wide as one of the pair's buttons: Finish Sketch and Cancel
+/// Sketch above Look At and Slice. Tokens: `form_primary, on_accent, form_button_height,
+/// font_label, control_radius, control_*, space_6/10`.
+pub fn wide_primary_and_secondary(ui: &mut Ui, primary: &str, secondary: &str) -> (Response, Response) {
+    let t = Tokens::get();
+    let (first, second) = egui::Frame::NONE
+        .inner_margin(egui::Margin::symmetric(t.space_10 as i8, t.space_6 as i8))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = t.space_6;
+                let size = vec2(dimension((ui.available_width() - t.space_6) / 2.0), t.form_button_height);
+                let text = RichText::new(solidcraft_ui_text::tr_label(primary)).size(t.font_label);
+                let button = styled_button(ui, text.bold_face().into(), ButtonTone::Primary).corner_radius(t.control_radius);
+                let first = ui.add_sized(size, button);
+                let text = RichText::new(solidcraft_ui_text::tr_label(secondary)).size(t.font_label);
+                let button = styled_button(ui, text.into(), ButtonTone::Normal).corner_radius(t.control_radius);
+                let second = ui.add_sized(size, button);
+                (first, second)
+            })
+            .inner
+        })
+        .inner;
+    for response in [&first, &second] {
+        t.button_bevel(ui, response, false);
+        pointer_on_hover(ui, response);
+    }
+    (first, second)
+}
+
 #[cfg(test)]
 #[path = "actions_tests.rs"]
 mod tests;

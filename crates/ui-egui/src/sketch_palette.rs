@@ -3,7 +3,7 @@
 //! buttons, or for Canvas and Decal whether the placed image follows a frame in the sketch. Options: the line type of the selected curves (normal, construction, centerline),
 //! Look At, and the display toggles kept with the sketch (grid, snap, slice, profiles, points,
 //! dimensions, constraints, projected geometry, construction geometry, 3D sketch); the sketch's
-//! degrees of freedom. Finish Sketch sits at the bottom, beside the ribbon's Exit group. Toggles run `sketch.options`, line types
+//! degrees of freedom. Finish Sketch and Cancel Sketch sit at the bottom, as in the ribbon's Exit group. Toggles run `sketch.options`, line types
 //! `sketch.construction` / `sketch.centerline`.
 //!
 //! The line type is also a drawing mode: with nothing selected, Construction (or X) makes what
@@ -413,6 +413,7 @@ pub(crate) fn shared_body(app: &mut SolveApp, ui: &mut egui::Ui) {
     let mut construction = false;
     let mut look = false;
     let mut finish = false;
+    let mut cancel = false;
     let mut slice_changed = false;
     let mut tie = false;
     let mut start = None;
@@ -532,11 +533,16 @@ pub(crate) fn shared_body(app: &mut SolveApp, ui: &mut egui::Ui) {
         section_alias("sketch_palette:options_fold", more);
     };
     let mut draw_footer = |ui: &mut egui::Ui| {
-        let button = crate::ui_kit::wide_primary_button(ui, "Finish Sketch");
+        // Cancel Sketch sits beside Finish Sketch, as in the ribbon's Exit group, for anyone who
+        // works from the palette (#19961). Its full name keeps it apart from a dialog's Cancel.
+        let (button, cancel_button) = crate::ui_kit::wide_primary_and_secondary(ui, "Finish Sketch", "Cancel Sketch");
         crate::panel_runtime::register_content_focus(ui.ctx(), &button);
         crate::scenario::publish_rect("sketch_palette:finish", button.rect);
         crate::scenario::publish_handle("sketch_palette:finish", button.rect.center());
         finish = button.clicked();
+        crate::scenario::publish_rect("sketch_palette:cancel", cancel_button.rect);
+        crate::scenario::publish_handle("sketch_palette:cancel", cancel_button.rect.center());
+        cancel = cancel_button.clicked();
         let (at, slice) = crate::ui_kit::button_pair(
             ui,
             "sketch_palette",
@@ -617,6 +623,8 @@ pub(crate) fn shared_body(app: &mut SolveApp, ui: &mut egui::Ui) {
     }
     if finish {
         app.finish_sketch();
+    } else if cancel {
+        app.cancel_sketch();
     }
 }
 
@@ -733,12 +741,39 @@ mod tests {
         let look = crate::scenario::rect_of("sketch_palette:look_at").expect("Look At | Slice stay");
         let slice = crate::scenario::rect_of("sketch_palette:slice").unwrap();
         let finish = crate::scenario::rect_of("sketch_palette:finish").unwrap();
-        assert_eq!((finish.left(), finish.right()), (look.left(), slice.right()), "Finish {finish:?} shares the pair's inset");
+        assert_eq!((finish.left(), finish.right()), (look.left(), look.right()), "Finish {finish:?} sits over Look At");
+        assert!(finish.right() < slice.left(), "and leaves the column over Slice to Cancel Sketch");
         assert_eq!(finish.height(), Tokens::get().form_button_height);
         assert!(look.top() - finish.bottom() >= Tokens::get().space_6, "the footer rows remain distinct");
         assert!(crate::scenario::handle_at("button:sketch.finish").is_some(), "and so does the ribbon's Finish");
         h.call("ui.click", json!({"x":at.x,"y":at.y}));
         assert!(h.app.session.active_sketch.is_none());
+    }
+
+    /// #19961: the palette has Cancel Sketch beside Finish Sketch, as the ribbon's Exit group
+    /// does. It leaves the sketch without its changes, and Undo brings them back.
+    #[test]
+    fn palette_cancel_sketch_leaves_the_sketch_without_its_changes() {
+        let mut h = crate::scenario::Harness::new();
+        let before = h.app.session.doc.to_json();
+        h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
+        h.app.run("sketch.line", json!({"points": [[0, 0], [30, 10]]})).unwrap();
+        h.settle();
+        let finish = crate::scenario::rect_of("sketch_palette:finish").unwrap();
+        let cancel = crate::scenario::rect_of("sketch_palette:cancel").expect("the palette has Cancel Sketch");
+        let look = crate::scenario::rect_of("sketch_palette:look_at").unwrap();
+        let slice = crate::scenario::rect_of("sketch_palette:slice").unwrap();
+        assert_eq!((cancel.left(), cancel.right()), (slice.left(), slice.right()), "Cancel {cancel:?} sits over Slice {slice:?}");
+        assert_eq!((cancel.top(), cancel.bottom()), (finish.top(), finish.bottom()), "beside Finish {finish:?}");
+        assert!(look.top() - cancel.bottom() >= Tokens::get().space_6, "the footer rows remain distinct");
+        assert!(crate::scenario::handle_at("button:sketch.cancel").is_some(), "and the ribbon keeps its Cancel");
+        h.call("ui.click", json!({"x":cancel.center().x,"y":cancel.center().y}));
+        h.settle();
+        assert!(h.app.session.active_sketch.is_none(), "Cancel Sketch leaves the sketch");
+        assert_eq!(h.app.session.doc.to_json(), before, "without the sketch or its line");
+        h.app.run("edit.undo", json!({})).unwrap();
+        h.settle();
+        assert_ne!(h.app.session.doc.to_json(), before, "Undo brings the changes back");
     }
 
     #[test]
